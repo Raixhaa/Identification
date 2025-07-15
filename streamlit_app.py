@@ -10,7 +10,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     body {
-        background: url("https://raw.githubusercontent.com/AlifRashyaR/identifikasi-senyawa/main/background-kimia.png") no-repeat center center fixed;
+        background: url("https://raw.githubusercontent.com/Raixhaa/blank-app/refs/heads/main/dreamina-2025-07-15-91470000000000.png") no-repeat center center fixed;
         background-size: cover;
     }
 
