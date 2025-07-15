@@ -6,7 +6,7 @@ st.set_page_config(
     layout="centered",
 )
 
-# === CSS: Background Samping Cerah + Tengah Putih Bersih ===
+# === CSS: Background + Tengah Transparan ===
 st.markdown("""
     <style>
     body {
@@ -15,7 +15,7 @@ st.markdown("""
     }
 
     .stApp {
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.85); /* transparan */
         padding: 2rem;
         border-radius: 20px;
         max-width: 850px;
@@ -185,4 +185,3 @@ else:
                         st.success("Hasil akhir: ♨️ Senyawa tersebut adalah **Benzena**.")
                     else:
                         st.warning("Reaksi tidak sesuai.")
-
