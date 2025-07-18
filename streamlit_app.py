@@ -881,7 +881,7 @@ elif st.session_state.page == "Tentang":
         """
     )
 
-elif st.session_state.page == "Saran dan Tanggapan":
+elif st.session_state.page == "Kotak Saran":
     st.title("💬 Saran & Tanggapan")
     st.markdown("---")
 
