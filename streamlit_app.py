@@ -621,6 +621,7 @@ NAV_ITEMS = [
     ("Simulasi", "🧪"),
     ("Glosarium", "📗"),
     ("Tentang", "ℹ️"),
+    ("Kotak Saran", "📬"),
 ]
 
 
@@ -855,7 +856,14 @@ elif st.session_state.page == "Tentang":
     st.title("ℹ️ Tentang Aplikasi Ini")
     st.markdown(
         """
-        Aplikasi edukasi ini dirancang untuk membantu mahasiswa memahami **alur identifikasi kualitatif senyawa organik** melalui antarmuka interaktif berbasis *decision tree*.
+       Aplikasi edukasi ini dirancang untuk membantu mahasiswa memahami alur identifikasi kualitatif senyawa organik melalui antarmuka interaktif berbasis decision tree. Di era teknologi digital dan pembelajaran berbasis daring, aplikasi ini bertujuan untuk:
+       - 💡 Meningkatkan pemahaman konseptual melalui simulasi visual dan percabangan logika.
+       - 🧪 Mempermudah latihan praktikum secara virtual sebelum turun ke laboratorium nyata. 
+       - 🌐 Mendukung pembelajaran mandiri (self-paced learning) dengan akses dari berbagai perangkat. 
+       - 📊 Menyajikan teori dan praktik kimia secara terintegrasi dalam satu platform edukatif.
+       - 🔍 Menanamkan keterampilan berpikir analitis dalam pemecahan masalah berbasis data eksperimen.
+       
+       Aplikasi ini cocok digunakan sebagai pelengkap modul kuliah, bahan ajar interaktif, maupun latihan mandiri untuk mahasiswa kimia, farmasi, pendidikan IPA, dan bidang terkait lainnya.
 
         ### Fitur Utama
         - UI ramah pendidikan dengan visual yang konsisten.
@@ -873,8 +881,28 @@ elif st.session_state.page == "Tentang":
         """
     )
 
+elif st.session_state.page == "Saran dan Tanggapan":
+    st.title("💬 Saran & Tanggapan")
+    st.markdown("---")
+
+    with st.form("saran_form"):
+        nama = st.text_input("Nama (opsional)")
+        komentar = st.text_area("Masukkan saran atau tanggapan Anda di sini:", height=150)
+        submitted = st.form_submit_button("Kirim")
+
+        if submitted:
+            if komentar.strip() == "":
+                st.warning("Silakan isi kotak saran terlebih dahulu.")
+            else:
+                # Simpan ke file lokal (bisa disesuaikan)
+                with open("saran_pengguna.txt", "a", encoding="utf-8") as f:
+                    f.write(f"Nama: {nama if nama else 'Anonim'}\n")
+                    f.write(f"Saran: {komentar}\n")
+                    f.write("="*40 + "\n")
+
+                st.success("Terima kasih atas saran dan tanggapan Anda!")
 # =============================================================
 # FOOTER KECIL
 # =============================================================
 st.markdown("---")
-st.caption("Dibuat untuk tujuan edukasi praktikum kimia organik. Silakan modifikasi sesuai kebutuhan kelas Anda.")
+st.caption("Dibuat untuk tujuan edukasi praktikum kimia organik. Silakan modifikasi sesuai kebutuhan kelas Anda. Dibuat oleh Kelompok 4: Alif Rashya Ramadhan (2460316), Dhea Natha Piwulang (2460355), Keysa Nada Salsabila (2460401), Neisya Fajrina Santoni (2460470), Syifa Aulia Rahma (2460524).")
