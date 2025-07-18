@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -14,7 +13,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------
-# KONSTAN / TEMA WARNA (mudah diubah oleh instruktur)
+# TEMA WARNA (mudah diubah oleh instruktur)
 # -------------------------------------------------------------
 PRIMARY = "#1e355e"        # biru tua edukatif
 SECONDARY = "#f39c12"      # oranye aksen
@@ -24,22 +23,6 @@ DANGER = "#c0392b"         # merah error
 INFO = "#2980b9"           # biru info
 LIGHT_BG_ALPHA = 0.90       # transparansi konten utama
 MAX_WIDTH_PX = 900          # lebar konten
-
-# -------------------------------------------------------------
-# LOKASI FILE KOTAK SARAN
-# -------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SARAN_FILE = os.path.join(BASE_DIR, "saran_pengguna.txt")
-
-def simpan_saran(nama: str, komentar: str, path: str = SARAN_FILE) -> None:
-    """Append satu entri saran ke file teks lokal."""
-    # pastikan folder ada (harusnya BASE_DIR sudah ada, tapi just in case)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(f"Nama: {nama if nama else 'Anonim'}\n")
-        f.write(f"Saran: {komentar}\n")
-        f.write("=" * 40 + "\n")
-
 
 # =============================================================
 # CSS GLOBAL & KOMPONEN UI KUSTOM
@@ -396,7 +379,7 @@ THEORY_LIST: List[Theory] = [
     ),
 ]
 
-# Buat lookup cepat teori (opsional)
+# Buat lookup cepat teori berdasarkan nama pendek untuk link internal
 THEORY_LOOKUP = {t.name: t for t in THEORY_LIST}
 
 # =============================================================
@@ -427,10 +410,11 @@ def result_node(node_id: str, name: str, icon: str, desc: str) -> 'DecisionNode'
     )
 
 NODES: Dict[str, DecisionNode] = {}
+
 def add(node: DecisionNode):
     NODES[node.id] = node
 
-# --- Definisi node keputusan ---
+# --- Definisi node keputusan (sama seperti versi terakhir Anda, hanya minor kosmetik) ---
 add(DecisionNode(
     id="molisch",
     title="Langkah 1: Uji Molisch",
@@ -639,11 +623,14 @@ NAV_ITEMS = [
 
 def nav_pill(label: str, emoji: str, active: bool, key: str):
     """Render 1 pill nav button di sidebar."""
+    cls = "nav-pill active" if active else "nav-pill"
+    # Gunakan HTML + form untuk clickable -> gunakan st.button wrapper
     return st.button(f"{emoji} {label}", key=key, use_container_width=True, type="primary" if active else "secondary")
 
 # =============================================================
 # FUNGSI RENDER NODE (SIMULASI)
 # =============================================================
+
 def render_node(node: DecisionNode):
     st.header(node.title)
 
@@ -793,9 +780,10 @@ elif st.session_state.page == "Simulasi":
         st.caption("Nama sampel akan ikut ditampilkan pada kartu hasil akhir.")
 
     # --------------------------------------------------------------
-    # Render jalur simulasi
+    # Render jalur simulasi seperti biasa
     # --------------------------------------------------------------
     if st.session_state.final_result is not None:
+        # bungkus render untuk menambahkan nama sampel pada kartu hasil
         node = NODES[st.session_state.final_result]
         st.header(node.title)
         color = node.result_color or SUCCESS
@@ -842,6 +830,20 @@ elif st.session_state.page == "Glosarium":
         st.markdown(f"**{k}** — {v}")
 
 # =============================================================
+elif st.session_state.page == "Glosarium":
+    st.title("📗 Glosarium Singkat")
+    st.markdown("""Berikut beberapa istilah yang sering muncul dalam praktikum identifikasi senyawa organik.""")
+    glos = {
+        "Endapan": "Fase padat yang terbentuk dari larutan akibat reaksi kimia.",
+        "Emulsi": "Campuran dua fase tak saling larut (misal minyak-air) menghasilkan kekeruhan.",
+        "Reagen": "Bahan kimia yang digunakan untuk mendeteksi, mengukur, atau memproduksi senyawa tertentu.",
+        "Positif": "Ada respon kimia yang konsisten dengan keberadaan gugus fungsi yang diuji.",
+        "Negatif": "Tidak ada respon spesifik untuk gugus fungsi tersebut.",
+    }
+    for k, v in glos.items():
+        st.markdown(f"**{k}** — {v}")
+
+# =============================================================
 # HALAMAN: TENTANG
 # =============================================================
 elif st.session_state.page == "Tentang":
@@ -873,9 +875,6 @@ elif st.session_state.page == "Tentang":
         """
     )
 
-# =============================================================
-# HALAMAN: KOTAK SARAN  (TIDAK MENAMPILKAN DAFTAR SARAN)
-# =============================================================
 elif st.session_state.page == "Kotak Saran":
     st.title("💬 Saran & Tanggapan")
     st.markdown("---")
@@ -889,9 +888,13 @@ elif st.session_state.page == "Kotak Saran":
             if komentar.strip() == "":
                 st.warning("Silakan isi kotak saran terlebih dahulu.")
             else:
-                simpan_saran(nama, komentar, SARAN_FILE)
-                st.success("Terima kasih atas saran dan tanggapan Anda!")
+                # Simpan ke file lokal (bisa disesuaikan)
+                with open("saran_pengguna.txt", "a", encoding="utf-8") as f:
+                    f.write(f"Nama: {nama if nama else 'Anonim'}\n")
+                    f.write(f"Saran: {komentar}\n")
+                    f.write("="*40 + "\n")
 
+                st.success("Terima kasih atas saran dan tanggapan Anda!")
 # =============================================================
 # FOOTER KECIL
 # =============================================================
