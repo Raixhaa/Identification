@@ -633,7 +633,7 @@ add(DecisionNode(
 add(result_node("hasil_heksana", "Heksana", "🛢️", "Hidrokarbon jenuh rantai alifatik; menyerap I2 (memudar)."))
 
 add(DecisionNode(
-    id="Logam Fe_aromatik",
+    id="fecl3_aromatik",
     title="Langkah 6: Uji Logam Fe",
     prompt="Apa hasil uji Logam Fe?",
     options=["Tak berwarna, endapan perak", "Merah kecoklatan"],
