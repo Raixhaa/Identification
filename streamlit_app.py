@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
+import urllib.parse  # untuk encode subject/body email Gmail
 import urllib.parse  # untuk encode pesan WhatsApp
 
 # =============================================================
@@ -923,8 +924,7 @@ elif st.session_state.page == "Tentang":
 elif st.session_state.page == "Kotak Saran":
     st.title("💬 Saran & Tanggapan")
     st.markdown("---")
-
-    st.write("Isi form di bawah. Setelah klik **Kirim**, Anda akan diarahkan ke WhatsApp admin untuk mengirim pesan langsung.")
+    st.write("Isi form di bawah. Setelah klik **Kirim**, draft email ke admin akan dibuka di Gmail.")
 
     with st.form("saran_form"):
         nama = st.text_input("Nama (opsional)")
@@ -935,31 +935,24 @@ elif st.session_state.page == "Kotak Saran":
         if komentar.strip() == "":
             st.warning("Silakan isi kotak saran terlebih dahulu.")
         else:
-            # =============================================================
-            # KIRIM KE WHATSAPP
-            # =============================================================
-            # Nomor WA harus dalam format internasional tanpa '+' dan tanpa nol awalan.
-            # 087871016777 -> 6287871016777 (kode negara Indonesia = 62)
-            nomor_wa = "6287871016777"
             nama_txt = nama.strip() if nama.strip() else "Anonim"
-            pesan_raw = (
-                f"Halo! Saya {nama_txt} ingin memberikan saran untuk aplikasi Identifikasi Senyawa Organik."
-                f"Saran: {komentar}"
+            subject = f"Saran Aplikasi Identifikasi Senyawa Organik dari {nama_txt}"
+            body = (
+                f"Halo, Saya {nama_txt} ingin menyampaikan saran untuk aplikasi Identifikasi Senyawa Organik."
+                f"Saran: {komentar} Terima kasih."
             )
-            pesan_encoded = urllib.parse.quote(pesan_raw)
-            wa_url = f"https://wa.me/{nomor_wa}?text={pesan_encoded}"
-
-            st.success("Klik tombol di bawah untuk membuka WhatsApp dan mengirim saran Anda.")
+            to_email = "adealif438@gmail.com"
+            gmail_url = (
+                "https://mail.google.com/mail/?view=cm&fs=1&to="
+                + urllib.parse.quote(to_email)
+                + "&su=" + urllib.parse.quote(subject)
+                + "&body=" + urllib.parse.quote(body)
+            )
+            st.success("Klik tombol di bawah untuk membuka Gmail dengan draft email saran Anda.")
             try:
-                st.link_button("📲 Kirim Saran via WhatsApp", wa_url, use_container_width=True)
+                st.link_button("📧 Kirim Saran via Gmail", gmail_url, use_container_width=True)
             except Exception:
-                # Jika versi Streamlit lama tidak punya link_button, fallback ke markdown link.
-                st.markdown(f"[📲 Kirim Saran via WhatsApp]({wa_url})")
-
-            # Opsional: tampilkan pesan yang akan dikirim agar user bisa copy manual.
-            with st.expander("Lihat / Salin Pesan Yang Akan Dikirim"):
-                st.code(pesan_raw, language="text")
-
+                st.markdown(f"[📧 Kirim Saran via Gmail]({gmail_url})")
 # =============================================================
 # FOOTER KECIL
 # =============================================================
