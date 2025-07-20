@@ -1,6 +1,56 @@
 import streamlit as st
+import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
+import urllib.parse  # untuk encode pesan WhatsApp
+
+# =============================================================
+# OPSIONAL: INTEGRASI GOOGLE SHEETS
+# =============================================================
+# Aktifkan jika Anda ingin menyimpan saran ke Google Sheets.
+# Cara pakai:
+# 1. Buat Service Account di Google Cloud Console & beri akses edit ke spreadsheet Anda.
+# 2. Unduh key JSON -> simpan sebagai `credentials.json` di folder yang sama dengan app.
+# 3. Isi nama spreadsheet pada GSHEETS_SPREADSHEET_NAME di bawah.
+# 4. Setel USE_GOOGLE_SHEETS = True.
+# Jika False, aplikasi hanya simpan ke file lokal `saran_pengguna.txt`.
+
+USE_GOOGLE_SHEETS = True  # ubah ke False jika belum siap
+GSHEETS_CREDENTIALS_FILE = "credentials.json"  # nama file kredensial
+GSHEETS_SPREADSHEET_NAME = "Nama Spreadsheet"  # Ganti dengan nama Google Sheets Anda
+
+# Kita akan lazy-import gspread saat diperlukan agar app tetap bisa jalan tanpa paket.
+_gs_client = None
+_gs_sheet = None
+
+
+def get_gsheet():
+    """Lazy init koneksi Google Sheets. Return worksheet atau None jika gagal."""
+    global _gs_client, _gs_sheet
+    if not USE_GOOGLE_SHEETS:
+        return None
+    if _gs_sheet is not None:
+        return _gs_sheet
+    try:
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+    except Exception as e:  # modul belum terinstal
+        st.warning("gspread / oauth2client belum terinstal. Menyimpan ke file lokal saja.")
+        return None
+
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    try:
+        creds = ServiceAccountCredentials.from_json_keyfile_name(GSHEETS_CREDENTIALS_FILE, scope)
+        _gs_client = gspread.authorize(creds)
+        _gs_sheet = _gs_client.open(GSHEETS_SPREADSHEET_NAME).sheet1
+        return _gs_sheet
+    except Exception as e:  # kredensial / akses error
+        st.error(f"Gagal koneksi ke Google Sheets: {e}. Akan fallback ke file lokal.")
+        return None
+
 
 # =============================================================
 # KONFIGURASI DASAR APLIKASI
@@ -397,6 +447,7 @@ class DecisionNode:
     result_desc: Optional[str] = None
     result_color: Optional[str] = SUCCESS
 
+
 def result_node(node_id: str, name: str, icon: str, desc: str) -> 'DecisionNode':
     return DecisionNode(
         id=node_id,
@@ -411,10 +462,11 @@ def result_node(node_id: str, name: str, icon: str, desc: str) -> 'DecisionNode'
 
 NODES: Dict[str, DecisionNode] = {}
 
+
 def add(node: DecisionNode):
     NODES[node.id] = node
 
-# --- Definisi node keputusan (sama seperti versi terakhir Anda, hanya minor kosmetik) ---
+# --- Definisi node keputusan ---
 add(DecisionNode(
     id="molisch",
     title="Langkah 1: Uji Molisch",
@@ -604,10 +656,12 @@ if "final_result" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "Latar Belakang"
 
+
 def reset_flow():
     st.session_state.decision_path = []
     st.session_state.current_node = "molisch"
     st.session_state.final_result = None
+
 
 # =============================================================
 # FUNGSI UI: NAVIGATION PILLS (SIDEBAR)
@@ -621,11 +675,12 @@ NAV_ITEMS = [
     ("Kotak Saran", "📬"),
 ]
 
+
 def nav_pill(label: str, emoji: str, active: bool, key: str):
     """Render 1 pill nav button di sidebar."""
-    cls = "nav-pill active" if active else "nav-pill"
-    # Gunakan HTML + form untuk clickable -> gunakan st.button wrapper
+    # st.button sudah cukup; style dikontrol via CSS di atas
     return st.button(f"{emoji} {label}", key=key, use_container_width=True, type="primary" if active else "secondary")
+
 
 # =============================================================
 # FUNGSI RENDER NODE (SIMULASI)
@@ -670,6 +725,7 @@ def render_node(node: DecisionNode):
             else:
                 st.session_state.final_result = "warning_generic"
         st.rerun()
+
 
 # =============================================================
 # SIDEBAR KONTEN
@@ -830,20 +886,6 @@ elif st.session_state.page == "Glosarium":
         st.markdown(f"**{k}** — {v}")
 
 # =============================================================
-elif st.session_state.page == "Glosarium":
-    st.title("📗 Glosarium Singkat")
-    st.markdown("""Berikut beberapa istilah yang sering muncul dalam praktikum identifikasi senyawa organik.""")
-    glos = {
-        "Endapan": "Fase padat yang terbentuk dari larutan akibat reaksi kimia.",
-        "Emulsi": "Campuran dua fase tak saling larut (misal minyak-air) menghasilkan kekeruhan.",
-        "Reagen": "Bahan kimia yang digunakan untuk mendeteksi, mengukur, atau memproduksi senyawa tertentu.",
-        "Positif": "Ada respon kimia yang konsisten dengan keberadaan gugus fungsi yang diuji.",
-        "Negatif": "Tidak ada respon spesifik untuk gugus fungsi tersebut.",
-    }
-    for k, v in glos.items():
-        st.markdown(f"**{k}** — {v}")
-
-# =============================================================
 # HALAMAN: TENTANG
 # =============================================================
 elif st.session_state.page == "Tentang":
@@ -875,26 +917,49 @@ elif st.session_state.page == "Tentang":
         """
     )
 
+# =============================================================
+# HALAMAN: KOTAK SARAN (dengan Google Sheets + fallback lokal)
+# =============================================================
 elif st.session_state.page == "Kotak Saran":
     st.title("💬 Saran & Tanggapan")
     st.markdown("---")
+
+    st.write("Isi form di bawah. Setelah klik **Kirim**, Anda akan diarahkan ke WhatsApp admin untuk mengirim pesan langsung.")
 
     with st.form("saran_form"):
         nama = st.text_input("Nama (opsional)")
         komentar = st.text_area("Masukkan saran atau tanggapan Anda di sini:", height=150)
         submitted = st.form_submit_button("Kirim")
 
-        if submitted:
-            if komentar.strip() == "":
-                st.warning("Silakan isi kotak saran terlebih dahulu.")
-            else:
-                # Simpan ke file lokal (bisa disesuaikan)
-                with open("saran_pengguna.txt", "a", encoding="utf-8") as f:
-                    f.write(f"Nama: {nama if nama else 'Anonim'}\n")
-                    f.write(f"Saran: {komentar}\n")
-                    f.write("="*40 + "\n")
+    if submitted:
+        if komentar.strip() == "":
+            st.warning("Silakan isi kotak saran terlebih dahulu.")
+        else:
+            # =============================================================
+            # KIRIM KE WHATSAPP
+            # =============================================================
+            # Nomor WA harus dalam format internasional tanpa '+' dan tanpa nol awalan.
+            # 087871016777 -> 6287871016777 (kode negara Indonesia = 62)
+            nomor_wa = "6287871016777"
+            nama_txt = nama.strip() if nama.strip() else "Anonim"
+            pesan_raw = (
+                f"Halo! Saya {nama_txt} ingin memberikan saran untuk aplikasi Identifikasi Senyawa Organik."
+                f"Saran: {komentar}"
+            )
+            pesan_encoded = urllib.parse.quote(pesan_raw)
+            wa_url = f"https://wa.me/{nomor_wa}?text={pesan_encoded}"
 
-                st.success("Terima kasih atas saran dan tanggapan Anda!")
+            st.success("Klik tombol di bawah untuk membuka WhatsApp dan mengirim saran Anda.")
+            try:
+                st.link_button("📲 Kirim Saran via WhatsApp", wa_url, use_container_width=True)
+            except Exception:
+                # Jika versi Streamlit lama tidak punya link_button, fallback ke markdown link.
+                st.markdown(f"[📲 Kirim Saran via WhatsApp]({wa_url})")
+
+            # Opsional: tampilkan pesan yang akan dikirim agar user bisa copy manual.
+            with st.expander("Lihat / Salin Pesan Yang Akan Dikirim"):
+                st.code(pesan_raw, language="text")
+
 # =============================================================
 # FOOTER KECIL
 # =============================================================
